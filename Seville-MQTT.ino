@@ -2,15 +2,6 @@
 // Author: Robbie Trencheny
 // https://github.com/robbiet480/Seville-MQTT
 // License: MIT
-// Based on:
-// - https://github.com/zeroflow/ESPAircon
-// - https://gist.github.com/balloob/daf310faa80112817d6826fbe5fc399d
-// Get ESP8266 going with Arduino IDE
-// - https://github.com/esp8266/Arduino#installing-with-boards-manager
-// Required libraries (sketch -> include library -> manage libraries)
-// - PubSubClient (https://github.com/knolleary/pubsubclient)
-// - IRemoteESP8266 (https://github.com/markszabo/IRremoteESP8266)
-// - ArduinoJSON (https://github.com/bblanchon/ArduinoJson)
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
