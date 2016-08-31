@@ -1,0 +1,41 @@
+// Wifi
+#define WIFI_SSID                ""
+#define WIFI_PASSWORD            ""
+
+// MQTT. Leave username/password blank if none
+
+#define MQTT_SERVER              "192.168.1.2"
+#define MQTT_PORT                1883
+#define MQTT_USER                ""
+#define MQTT_PASS                ""
+#define MQTT_CLIENT_ID           "ESP8266Client"
+
+// Topics
+
+#define ALIVE_TOPIC              "esp8266/ac/status"
+
+#define JSON_STATE_TOPIC         "esp8266/ac/json/state"
+#define JSON_SET_TOPIC           "esp8266/ac/json/set"
+
+#define ON_STATE_TOPIC           "esp8266/ac/on/state"
+#define ON_SET_TOPIC             "esp8266/ac/on/set"
+
+#define OSCILLATE_STATE_TOPIC    "esp8266/ac/oscillate/state"
+#define OSCILLATE_SET_TOPIC      "esp8266/ac/oscillate/set"
+
+#define SPEED_STATE_TOPIC        "esp8266/ac/speed/state"
+#define SPEED_SET_TOPIC          "esp8266/ac/speed/set"
+
+// Pin configurations
+
+#define IR_PIN                   14                    // NodeMCU D5
+
+#define RED_LED                  16                    // NodeMCU D0
+#define BLUE_LED                 2                     // NodeMCU D4
+
+// RED_LED breathing setting
+
+#define BRIGHT                   350                   // max led intensity (1-500)
+#define INHALE                   1250                  // Inhalation time in milliseconds.
+#define PULSE                    INHALE*1000/BRIGHT
+#define REST                     1000                  // Rest Between Inhalations.
