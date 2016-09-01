@@ -33,6 +33,9 @@ A sketch for the NodeMCU/ESP8266 which allows controlling a Seville Classics Ult
 | Oscillate | `esp8266/ac/oscillate/state` | `esp8266/ac/oscillate/set` | `OSCILLATE_STATE_TOPIC`, `OSCILLATE_SET_TOPIC` | Boolean                        | Turns oscillation on/off                                                                                                                                 |
 | Speed     | `esp8266/ac/speed/state`     | `esp8266/ac/speed/set`     | `SPEED_STATE_TOPIC`, `SPEED_SET_TOPIC`         | `eco`, `low`, `medium`, `high` | Sets the fan speed                                                                                                                                       |
 
+# Debugging
+Serial outputs at 115200 baud. You can view the output in the Arduino IDE Serial Monitor.
+
 # Acknowledgements
 - This sketch is based on work from [@zeroflow's](https://github.com/zeroflow) [ESPAircon](https://github.com/zeroflow/ESPAircon).
 - Initial confirmation that the IR codes I was seeing were correct came from [@scruss's](https://github.com/scruss) [IRTowerFanExample](https://github.com/scruss/IRTowerFanExample).
