@@ -278,7 +278,7 @@ void loop() {
 
 void send_raw_ir(unsigned int* raw_data) {
   digitalWrite(BLUE_LED, LOW);
-  irsend.sendRaw(raw_data, sizeof(raw_data) / sizeof(raw_data[0]), 38);
+  irsend.sendRaw(raw_data, 131, 38);
   digitalWrite(BLUE_LED, HIGH);
 }
 
