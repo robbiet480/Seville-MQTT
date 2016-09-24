@@ -37,6 +37,7 @@ typedef struct {
   bool on;
   bool oscillate;
   int speed;
+  int wind;
 } seville_msg_t;
 
 IRsend irsend(IR_PIN);
@@ -96,6 +97,20 @@ void callback(char* topic, byte* payload, unsigned int length) {
       }
       publish_to_mqtt(SPEED_STATE_TOPIC, root["speed"]);
     }
+
+    if (root.containsKey("wind")) {
+      String wind = String(root["wind"].asString());
+      if (wind == "eco") {
+        msg.wind = 3;
+      } else if (wind == "low") {
+        msg.wind = 0;
+      } else if (wind == "medium") {
+        msg.wind = 1;
+      } else if (wind == "high") {
+        msg.wind = 2;
+      }
+      publish_to_mqtt(WIND_STATE_TOPIC, root["wind"]);
+    }
   } else if (String(topic) == String(ON_SET_TOPIC)) {
     msg.on = (str_payload == "true");
     publishing_topic = ON_STATE_TOPIC;
@@ -116,6 +131,16 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
     publishing_topic = SPEED_STATE_TOPIC;
     publishing_payload = String(str_payload).c_str();
+  } else if (String(topic) == String(WIND_SET_TOPIC)) {
+    if (str_payload == "normal") {
+      msg.speed = 1;
+    } else if (str_payload == "sleeping") {
+      msg.speed = 2;
+    } else if (str_payload == "natural") {
+      msg.speed = 3;
+    }
+    publishing_topic = WIND_STATE_TOPIC;
+    publishing_payload = String(str_payload).c_str();
   } else {
     Serial.println("No topic matched!");
   }
@@ -133,16 +158,27 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   String human_speed = "";
 
-  if (msg.speed == 0) {
+  if (msg.speed == 3) {
     human_speed = "eco";
-  } else if (msg.speed == 1) {
+  } else if (msg.speed == 0) {
     human_speed = "low";
-  } else if (msg.speed == 2) {
+  } else if (msg.speed == 1) {
     human_speed = "medium";
-  } else if (msg.speed == 3) {
+  } else if (msg.speed == 2) {
     human_speed = "high";
   }
   publish_root["speed"] = human_speed;
+
+  String human_wind = "";
+
+  if (msg.wind == 1) {
+    human_wind = "normal";
+  } else if (msg.wind == 2) {
+    human_wind = "sleeping";
+  } else if (msg.wind == 3) {
+    human_wind = "natural";
+  }
+  publish_root["wind"] = human_wind;
 
   char buf[256];
   publish_root.printTo(buf, sizeof(buf));
@@ -165,6 +201,7 @@ void setup() {
   msg.on = false;
   msg.oscillate = false;
   msg.speed = 3;
+  msg.wind = 3; // 1 = normal, 2 = sleeping, 3 = natural
 
   setup_wifi();
 }
@@ -211,6 +248,7 @@ void reconnect() {
       client.subscribe(ON_SET_TOPIC);
       client.subscribe(OSCILLATE_SET_TOPIC);
       client.subscribe(SPEED_SET_TOPIC);
+      client.subscribe(WIND_SET_TOPIC);
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -266,34 +304,44 @@ void publish_to_mqtt(const char* topic, const char* payload) {
 }
 
 void set_fan_state() {
+  unsigned int* ir_code;
+  String ir_code_description = "";
   if (msg.on) {
     if (msg.oscillate) {
       if (msg.speed == 3) {
         // On, Oscillate, Eco
-        send_raw_ir(fan_on_eco_oscillate);
+        ir_code = fan_on_eco_oscillate;
+        ir_code_description = "On, Oscillate, Eco (fan_on_eco_oscillate)";
       } else if (msg.speed == 0) {
         // On, Oscillate, Low
-        send_raw_ir(fan_on_low_oscillate);
+        ir_code = fan_on_low_oscillate;
+        ir_code_description = "On, Oscillate, Low (fan_on_low_oscillate)";
       } else if (msg.speed == 1) {
         // On, Oscillate, Medium
-        send_raw_ir(fan_on_medium_oscillate);
+        ir_code = fan_on_medium_oscillate;
+        ir_code_description = "On, Oscillate, Medium (fan_on_medium_oscillate)";
       } else if (msg.speed == 2) {
         // On, Oscillate, High
-        send_raw_ir(fan_on_high_oscillate);
+        ir_code = fan_on_high_oscillate;
+        ir_code_description = "On, Oscillate, High (fan_on_high_oscillate)";
       }
     } else {
       if (msg.speed == 3) {
         // On, Eco
-        send_raw_ir(fan_on_eco);
+        ir_code = fan_on_eco;
+        ir_code_description = "On, Eco (fan_on_eco)";
       } else if (msg.speed == 0) {
         // On, Low
-        send_raw_ir(fan_on_low);
+        ir_code = fan_on_low;
+        ir_code_description = "On, Low (fan_on_low)";
       } else if (msg.speed == 1) {
         // On, Medium
-        send_raw_ir(fan_on_medium);
+        ir_code = fan_on_medium;
+        ir_code_description = "On, Medium (fan_on_medium)";
       } else if (msg.speed == 2) {
         // On, High
-        send_raw_ir(fan_on_high);
+        ir_code = fan_on_high;
+        ir_code_description = "On, High (fan_on_high)";
       }
     }
   } else {
@@ -301,31 +349,49 @@ void set_fan_state() {
     if (msg.oscillate) {
       if (msg.speed == 3) {
         // Off, Oscillate, Eco
-        send_raw_ir(fan_off_eco_oscillate);
+        ir_code = fan_off_eco_oscillate;
+        ir_code_description = "Off, Oscillate, Eco (fan_off_eco_oscillate)";
       } else if (msg.speed == 0) {
         // Off, Oscillate, Low
-        send_raw_ir(fan_off_low_oscillate);
+        ir_code = fan_off_low_oscillate;
+        ir_code_description = "Off, Oscillate, Low (fan_off_low_oscillate)";
       } else if (msg.speed == 1) {
         // Off, Oscillate, Medium
-        send_raw_ir(fan_off_medium_oscillate);
+        ir_code = fan_off_medium_oscillate;
+        ir_code_description = "Off, Oscillate, Medium (fan_off_medium_oscillate)";
       } else if (msg.speed == 2) {
         // Off, Oscillate, High
-        send_raw_ir(fan_off_high_oscillate);
+        ir_code = fan_off_high_oscillate;
+        ir_code_description = "Off, Oscillate, High (fan_off_high_oscillate)";
       }
     } else {
       if (msg.speed == 3) {
         // Off, Eco
-        send_raw_ir(fan_off_eco);
+        ir_code = fan_off_eco;
+        ir_code_description = "Off, Eco (fan_off_eco)";
       } else if (msg.speed == 0) {
         // Off, Low
-        send_raw_ir(fan_off_low);
+        ir_code = fan_off_low;
+        ir_code_description = "Off, Low (fan_off_low)";
       } else if (msg.speed == 1) {
         // Off, Medium
-        send_raw_ir(fan_off_medium);
+        ir_code = fan_off_medium;
+        ir_code_description = "Off, Medium (fan_off_medium)";
       } else if (msg.speed == 2) {
         // Off, High
-        send_raw_ir(fan_off_high);
+        ir_code = fan_off_high;
+        ir_code_description = "Off, High (fan_off_high)";
       }
     }
   }
+  Serial.print("Setting fan state to: ");
+  Serial.print(ir_code_description);
+  // Serial.print(" (x");
+  // Serial.print(msg.wind);
+  // Serial.println(")");
+  send_raw_ir(ir_code);
+  // for (int i = 0; i < msg.wind; i++) {
+  //   send_raw_ir(ir_code);
+  //   delay(100);
+  // }
 }
