@@ -7,6 +7,7 @@
 #include <PubSubClient.h>
 #include <IRremoteESP8266.h>
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
 
 #include "config.h"
 
@@ -202,6 +203,12 @@ void setup() {
   msg.wind = 3; // 1 = normal, 2 = sleeping, 3 = natural
 
   setup_wifi();
+
+  char hostname[20];
+  sprintf(hostname, "Seville-MQTT-%06x", ESP.getChipId());
+
+  ArduinoOTA.setHostname(hostname);
+  ArduinoOTA.begin();
 }
 
 void setup_wifi() {
@@ -286,6 +293,7 @@ void loop() {
     delay(REST);                           // take a rest...
     reconnect();
   }
+  ArduinoOTA.handle();
   client.loop();
 }
 

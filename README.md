@@ -14,6 +14,7 @@ A sketch for the NodeMCU/ESP8266 which allows controlling a Seville Classics Ult
 3. Change `config.h` to match your settings.
 4. Ensure all required libraries are loaded in the Arduino IDE:
   - [ArduinoJSON](https://github.com/bblanchon/ArduinoJson)
+  - [ArduinoOTA](https://github.com/esp8266/Arduino/tree/master/libraries/ArduinoOTA)
   - [IRemoteESP8266](https://github.com/markszabo/IRremoteESP8266)
   - [PubSubClient](https://github.com/knolleary/pubsubclient)
 5. Load the sketch.
@@ -23,6 +24,7 @@ A sketch for the NodeMCU/ESP8266 which allows controlling a Seville Classics Ult
 - The red LED flashes everytime a message is sent via MQTT.
 - The red LED will stay solid if the board is disconnected from wifi.
 - The blue LED will blink anytime IR data is emitted.
+- ArduinoOTA is enabled allowing you to upload new versions without needing to plug into a computer. See [the docs](http://esp8266.github.io/Arduino/versions/2.0.0/doc/ota_updates/ota_updates.html#arduino-ide) for more information.
 
 # Topics
 | Name      | Default State Topic          | Default Command Topic      | Defined as                                     | Accepts                        | Description                                                                                                                                              |
