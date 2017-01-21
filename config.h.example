@@ -24,6 +24,9 @@
 #define SPEED_STATE_TOPIC        "esp8266/ac/speed/state"
 #define SPEED_SET_TOPIC          "esp8266/ac/speed/set"
 
+#define WIND_STATE_TOPIC         "esp8266/ac/wind/state"
+#define WIND_SET_TOPIC           "esp8266/ac/wind/set"
+
 // Pin configurations
 #define IR_PIN                   14                    // NodeMCU D5
 
