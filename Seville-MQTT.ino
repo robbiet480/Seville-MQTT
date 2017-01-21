@@ -100,14 +100,12 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     if (root.containsKey("wind")) {
       String wind = String(root["wind"].asString());
-      if (wind == "eco") {
-        msg.wind = 3;
-      } else if (wind == "low") {
-        msg.wind = 0;
-      } else if (wind == "medium") {
+      if (wind == "normal") {
         msg.wind = 1;
-      } else if (wind == "high") {
+      } else if (wind == "sleeping") {
         msg.wind = 2;
+      } else if (wind == "natural") {
+        msg.wind = 3;
       }
       publish_to_mqtt(WIND_STATE_TOPIC, root["wind"]);
     }
@@ -385,13 +383,6 @@ void set_fan_state() {
     }
   }
   Serial.print("Setting fan state to: ");
-  Serial.print(ir_code_description);
-  // Serial.print(" (x");
-  // Serial.print(msg.wind);
-  // Serial.println(")");
+  Serial.println(ir_code_description);
   send_raw_ir(ir_code);
-  // for (int i = 0; i < msg.wind; i++) {
-  //   send_raw_ir(ir_code);
-  //   delay(100);
-  // }
 }
