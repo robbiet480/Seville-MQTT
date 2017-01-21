@@ -41,7 +41,7 @@ Serial outputs at 115200 baud. You can view the output in the Arduino IDE Serial
 # Acknowledgements
 - This sketch is based on work from [@zeroflow's](https://github.com/zeroflow) [ESPAircon](https://github.com/zeroflow/ESPAircon).
 - Initial confirmation that the IR codes I was seeing were correct came from [@scruss's](https://github.com/scruss) [IRTowerFanExample](https://github.com/scruss/IRTowerFanExample).
-- I got some great ideas from [@balloob's](https://github.com/balloob) [sketch he made to control his AC unit](gist.github.com/balloob/daf310faa80112817d6826fbe5fc399d).
+- I got some great ideas from [@balloob's](https://github.com/balloob) [sketch he made to control his AC unit](https://gist.github.com/balloob/daf310faa80112817d6826fbe5fc399d).
 
 # Contributing
 Fork, modify, pull request.
