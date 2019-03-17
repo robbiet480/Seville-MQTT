@@ -27,13 +27,95 @@ A sketch for the NodeMCU/ESP8266 which allows controlling a Seville Classics Ult
 - ArduinoOTA is enabled allowing you to upload new versions without needing to plug into a computer. See [the docs](http://esp8266.github.io/Arduino/versions/2.0.0/doc/ota_updates/ota_updates.html#arduino-ide) for more information.
 
 # Topics
-| Name      | Default State Topic          | Default Command Topic      | Defined as                                     | Accepts                        | Description                                                                                                                                              |
-|-----------|------------------------------|----------------------------|------------------------------------------------|--------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Alive     | `esp8266/ac/status`          | N/A                        | `ALIVE_TOPIC`                                  | N/A                            | Contains the current status of the board. `alive` if it's online, otherwise `dead`.                                                                      |
-| JSON      | `esp8266/ac/json/status`     | `esp8266/ac/json/set`      | `JSON_STATE_TOPIC`, `JSON_SET_TOPIC`           | JSON object                    | Allows setting multiple parameters with a single call. Valid keys are `on` (Boolean), `oscillate` (Boolean) and `speed` (`eco`, `low`, `medium`, `high`) |
-| Power     | `esp8266/ac/on/state`        | `esp8266/ac/on/set`        | `ON_STATE_TOPIC`, `ON_SET_TOPIC`               | Boolean                        | Turns the fan on/off                                                                                                                                     |
-| Oscillate | `esp8266/ac/oscillate/state` | `esp8266/ac/oscillate/set` | `OSCILLATE_STATE_TOPIC`, `OSCILLATE_SET_TOPIC` | Boolean                        | Turns oscillation on/off                                                                                                                                 |
-| Speed     | `esp8266/ac/speed/state`     | `esp8266/ac/speed/set`     | `SPEED_STATE_TOPIC`, `SPEED_SET_TOPIC`         | `eco`, `low`, `medium`, `high` | Sets the fan speed                                                                                                                                       |
+| Name      | Default State Topic          | Default Command Topic      | Defined as                                     | Accepts                         | Description                                                                                                                                              |
+|-----------|------------------------------|----------------------------|------------------------------------------------|---------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Alive     | `esp8266/ac/status`          | N/A                        | `ALIVE_TOPIC`                                  | N/A                             | Contains the current status of the board. `alive` if it's online, otherwise `dead`.                                                                      |
+| Power     | `esp8266/ac/on/state`        | `esp8266/ac/on/set`        | `ON_STATE_TOPIC`, `ON_SET_TOPIC`               | Boolean                         | Turns the fan on/off                                                                                                                                     |
+| Oscillate | `esp8266/ac/oscillate/state` | `esp8266/ac/oscillate/set` | `OSCILLATE_STATE_TOPIC`, `OSCILLATE_SET_TOPIC` | Boolean                         | Turns oscillation on/off                                                                                                                                 |
+| Speed     | `esp8266/ac/speed/state`     | `esp8266/ac/speed/set`     | `SPEED_STATE_TOPIC`, `SPEED_SET_TOPIC`         | `eco`, `low`, `medium`, `high`  | Sets the fan speed                                                                                                                                       |
+| Timer     | `esp8266/ac/timer/state`     | `esp8266/ac/timer/set`     | `TIMER_STATE_TOPIC`, `TIMER_SET_TOPIC`         | `00:30` to `07:30` (hh:mm)      | Sets the timer                                                                                                                                           |
+| Wind Mode | `esp8266/ac/wind/state`      | `esp8266/ac/wind/set`      | `WIND_STATE_TOPIC`, `WIND_SET_TOPIC`           | `normal`, `sleeping`, `natural` | Sets the "wind mode"                                                                                                                                     |
+
+# Home Assistant Example Configuration
+```yaml
+mqtt:
+  host: 192.168.1.2
+  username: username
+  password: password
+  discovery: true
+
+fan:
+  - platform: mqtt
+    name: "Seville Fan"
+    availability_topic: "esp8266/fan/status"
+    command_topic: "esp8266/fan/on/set"
+    json_attributes_topic: "esp8266/fan/attributes"
+    oscillation_command_topic: "esp8266/fan/oscillate/set"
+    oscillation_state_topic: "esp8266/fan/oscillate/state"
+    speeds:
+      - 'off'
+      - eco
+      - low
+      - medium
+      - high
+    speed_command_topic: "esp8266/fan/speed/set"
+    speed_state_topic: "esp8266/fan/speed/state"
+    state_topic: "esp8266/fan/on/state"
+
+input_select:
+  seville_fan_timer:
+    name: "Seville Fan - Timer"
+    icon: mdi:timer
+    initial: '0:00'
+    options:
+      - '0:00'
+      - '0:30'
+      - '1:00'
+      - '1:30'
+      - '2:00'
+      - '2:30'
+      - '3:00'
+      - '3:30'
+      - '4:00'
+      - '4:30'
+      - '5:00'
+      - '5:30'
+      - '6:00'
+      - '6:30'
+      - '7:00'
+      - '7:30'
+  seville_fan_wind:
+    name: "Seville Fan - Wind Mode"
+    icon: mdi:weather-windy
+    initial: 'Normal'
+    options:
+      - 'Normal'
+      - 'Sleeping'
+      - 'Natural'
+
+automation:
+  - alias: Set Fan Wind Mode
+    hide_entity: True
+    trigger:
+      platform: state
+      entity_id: input_select.seville_fan_wind
+    action:
+      - service: mqtt.publish
+        data_template:
+          topic: "esp8266/fan/wind/set"
+          payload_template: '{{ states.input_select.seville_fan_wind.state }}'
+
+  - alias: Set Fan Timer
+    hide_entity: True
+    trigger:
+      platform: state
+      entity_id: input_select.seville_fan_timer
+    action:
+      - service: mqtt.publish
+        data_template:
+          topic: "esp8266/fan/timer/set"
+          payload_template: '{{ states.input_select.seville_fan_timer.state }}'
+```
 
 # Debugging
 Serial outputs at 115200 baud. You can view the output in the Arduino IDE Serial Monitor.
