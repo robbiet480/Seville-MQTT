@@ -6,46 +6,15 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <IRremoteESP8266.h>
-#include <ArduinoJson.h>
+#include <IRsend.h>
 #include <ArduinoOTA.h>
 
 #include "config.h"
+#include "Seville.h"
 
 #define MQTT_MAX_PACKET_SIZE 384
 
-// Raw IR Data
-unsigned int fan_off_eco[131] = {9400,4800, 550,550, 550,550, 550,600, 550,1650, 550,550, 600,550, 500,600, 550,550, 550,600, 500,600, 550,1650, 550,550, 550,600, 550,550, 550,550, 550,600, 500,600, 550,600, 500,1700, 500,1700, 550,550, 550,550, 550,600, 550,550, 550,550, 550,1650, 550,600, 550,550, 550,550, 550,600, 550,1650, 550,1650, 550,550, 550,1650, 550,600, 550,1650, 550,550, 550,600, 500,600, 550,550, 550,600, 550,550, 500,600, 550,600, 550,550, 550,550, 550,600, 500,600, 550,550, 550,1700, 500,1700, 500,600, 550,550, 550,600, 550,550, 550,550, 550,600, 550,1650, 550,1650, 550,1650, 550,550, 550,600, 550,1650, 550,1650, 550};  // NEC 10203043
-unsigned int fan_off_low[131] = {9400,4800, 550,550, 550,550, 550,600, 550,1650, 550,550, 550,550, 550,600, 550,550, 550,600, 500,600, 550,1650, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 550,550, 550,1700, 500,1700, 500,600, 550,550, 550,600, 550,550, 550,550, 550,1650, 550,600, 550,550, 550,550, 550,600, 550,550, 550,600, 550,550, 550,1650, 550,550, 550,1650, 550,600, 550,550, 550,550, 550,600, 550,550, 550,600, 500,600, 550,550, 550,600, 500,600, 550,550, 550,600, 550,550, 550,1650, 550,1650, 550,550, 550,600, 550,550, 550,600, 500,600, 550,550, 550,1650, 550,1650, 550,1650, 550,600, 550,550, 550,600, 500,600, 550};  // NEC 10203040
-unsigned int fan_off_medium[131] = {9350,4800, 550,550, 550,600, 550,550, 550,1650, 600,550, 500,600, 550,550, 550,600, 550,550, 550,550, 550,1650, 550,600, 550,550, 550,550, 550,600, 550,550, 550,600, 500,600, 550,1650, 550,1650, 550,550, 550,600, 550,550, 550,550, 550,600, 550,1650, 550,550, 550,600, 500,600, 550,550, 550,600, 550,1650, 550,550, 550,1650, 550,600, 500,1700, 550,550, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 600,1600, 550,1650, 550,600, 550,600, 500,600, 550,550, 600,550, 550,550, 550,1650, 550,1650, 550,1650, 550,600, 500,600, 550,550, 550,1650, 550};  // NEC 10203041
-unsigned int fan_off_high[131] = {9350,4850, 500,600, 550,550, 550,600, 500,1700, 550,550, 550,550, 550,600, 550,550, 550,550, 550,600, 550,1650, 550,550, 550,600, 500,600, 550,550, 550,600, 550,550, 550,550, 550,1650, 550,1650, 550,600, 550,550, 550,600, 500,600, 550,550, 550,1650, 550,600, 550,550, 550,550, 550,600, 550,1650, 550,550, 550,600, 500,1700, 500,600, 550,1650, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 550,600, 500,600, 550,550, 550,600, 550,1650, 550,1650, 550,550, 550,550, 550,600, 550,550, 550,600, 500,600, 550,1650, 550,1650, 550,1650, 550,550, 550,600, 550,1650, 550,550, 550};  // NEC 10203042
-
-unsigned int fan_off_eco_oscillate[131] = {9350,4800, 550,600, 500,600, 550,550, 550,1650, 550,600, 550,550, 550,550, 550,600, 550,550, 550,550, 550,1650, 550,600, 550,550, 550,600, 500,600, 550,550, 550,600, 550,550, 550,1650, 550,1650, 550,550, 550,600, 550,550, 550,1650, 550,600, 550,1650, 550,550, 550,550, 550,600, 550,550, 550,1650, 550,1650, 550,600, 550,1650, 550,550, 550,1650, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 550,600, 500,600, 550,550, 550,600, 550,550, 550,550, 550,600, 550,1650, 550,1650, 550,550, 550,550, 550,600, 550,550, 550,600, 550,550, 550,1650, 550,1650, 550,1650, 550,550, 550,600, 550,1650, 550,550, 550};  // NEC 10203143
-unsigned int fan_off_low_oscillate[131] = {9400,4800, 550,550, 550,600, 550,550, 550,1650, 550,600, 500,600, 500,600, 550,600, 550,550, 550,550, 550,1650, 550,600, 550,550, 550,550, 550,600, 550,550, 550,600, 500,600, 550,1650, 550,1650, 550,550, 550,600, 550,550, 550,1650, 550,600, 500,1700, 500,600, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 550,1650, 550,600, 500,1700, 500,600, 500,600, 550,600, 550,550, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 550,1650, 600,1600, 550,600, 550,550, 550,550, 550,600, 550,550, 550,550, 550,1700, 500,1700, 500,1700, 500,600, 550,550, 550,600, 550,1650, 550};  // NEC 10203140
-unsigned int fan_off_medium_oscillate[131] = {9350,4800, 550,600, 550,550, 550,550, 550,1650, 550,600, 550,550, 550,600, 500,600, 550,550, 550,600, 550,1650, 550,550, 500,600, 550,600, 550,550, 550,550, 550,600, 550,550, 550,1650, 550,1650, 550,600, 550,550, 550,550, 550,1650, 550,600, 550,1650, 550,550, 550,600, 500,600, 550,550, 550,600, 500,1700, 500,600, 550,1650, 550,550, 550,1700, 500,600, 550,550, 550,600, 500,600, 550,550, 550,600, 550,550, 550,550, 550,600, 500,600, 550,550, 550,600, 500,600, 550,1650, 550,1650, 550,600, 500,600, 550,550, 550,600, 550,550, 550,550, 550,1700, 500,1700, 500,1700, 550,550, 550,550, 550,600, 550,550, 550};  // NEC 10203141
-unsigned int fan_off_high_oscillate[131] = {9400,4800, 550,550, 550,600, 550,550, 550,1650, 550,550, 550,600, 550,550, 550,600, 500,600, 550,550, 550,1650, 550,600, 500,600, 550,550, 550,600, 550,550, 550,600, 500,600, 550,1650, 550,1650, 500,600, 550,600, 500,600, 500,1700, 550,550, 550,1650, 550,600, 550,550, 550,600, 500,600, 550,1650, 550,550, 600,550, 550,1650, 550,550, 550,1650, 550,600, 550,550, 550,550, 550,600, 550,550, 550,550, 550,600, 550,550, 550,550, 600,550, 550,550, 550,550, 550,600, 550,1650, 550,1650, 550,550, 550,600, 500,600, 550,550, 550,600, 550,550, 550,1650, 550,1650, 550,1650, 550,600, 500,600, 550,1650, 500,1700, 550};  // NEC 10203142
-
-unsigned int fan_on_eco[131] = {9350,4800, 550,550, 550,550, 550,600, 550,1650, 600,500, 550,600, 550,550, 550,1650, 550,550, 550,600, 550,1650, 550,550, 550,550, 600,550, 550,550, 600,550, 550,550, 550,550, 600,1600, 600,1650, 550,550, 600,500, 600,550, 550,550, 550,600, 550,1650, 550,550, 550,550, 600,550, 550,550, 550,1650, 550,1650, 550,600, 550,1650, 600,500, 550,1650, 600,550, 600,500, 550,600, 550,550, 600,550, 550,550, 550,550, 550,600, 550,550, 600,550, 550,550, 600,500, 600,550, 600,1600, 600,1650, 600,500, 600,500, 600,550, 600,500, 600,550, 550,550, 600,1600, 600,1650, 550,1650, 600,500, 550,550, 600,1650, 550,550, 550};
-unsigned int fan_on_low[131] = {9400,4750, 600,500, 600,550, 600,500, 600,1650, 600,500, 600,500, 600,550, 600,1600, 600,550, 550,550, 600,1600, 600,500, 600,550, 550,550, 600,500, 600,550, 600,500, 600,550, 550,1650, 600,1600, 600,550, 600,500, 600,500, 600,550, 600,500, 600,1600, 600,500, 600,550, 600,500, 600,500, 600,550, 600,500, 600,550, 600,1600, 600,500, 600,1600, 600,550, 550,550, 600,500, 600,550, 600,500, 600,550, 600,500, 600,500, 650,500, 600,550, 600,500, 600,500, 600,550, 600,1600, 600,1650, 550,550, 600,500, 600,500, 600,550, 600,500, 600,550, 600,1600, 550,1650, 600,1600, 600,500, 650,500, 600,500, 600,1650, 600};
-unsigned int fan_on_medium[131] = {9350,4750, 600,550, 550,550, 600,550, 550,1700, 550,500, 600,550, 600,500, 600,1600, 600,550, 550,550, 600,1600, 600,550, 550,550, 600,500, 600,550, 600,500, 600,500, 600,550, 600,1600, 600,1600, 600,550, 600,500, 600,500, 600,550, 550,550, 600,1600, 600,550, 600,500, 600,500, 600,550, 600,500, 600,1600, 600,550, 600,1600, 600,500, 550,1650, 600,550, 550,550, 600,500, 600,550, 600,500, 600,500, 600,550, 600,500, 600,500, 650,500, 600,550, 600,500, 600,550, 550,1650, 600,1650, 550,550, 550,550, 600,550, 600,500, 600,500, 600,550, 600,1600, 600,1600, 600,1650, 550,550, 600,500, 600,550, 600,500, 550};
-unsigned int fan_on_high[131] = {9300,4800, 600,500, 600,550, 600,500, 600,1650, 600,500, 600,500, 600,550, 550,1650, 600,500, 600,550, 600,1600, 600,500, 600,550, 600,500, 600,500, 600,550, 600,500, 600,550, 600,1600, 600,1600, 600,500, 600,550, 600,500, 600,550, 550,550, 600,1600, 600,500, 600,550, 600,500, 600,500, 600,1650, 550,550, 600,500, 600,1600, 600,550, 600,1600, 600,500, 600,550, 600,500, 600,500, 600,550, 600,500, 600,550, 550,550, 600,500, 600,550, 600,550, 600,500, 600,500, 600,1650, 550,1650, 600,550, 600,500, 600,500, 600,550, 600,500, 600,550, 550,1650, 600,1600, 600,1600, 600,550, 600,500, 550,1650, 600,1650, 600};
-
-unsigned int fan_on_eco_oscillate[131] = {9350,4800, 550,550, 600,550, 550,550, 550,1700, 550,550, 550,550, 550,550, 600,1650, 550,550, 600,500, 600,1600, 600,550, 550,550, 600,550, 550,550, 550,550, 600,550, 600,500, 600,1600, 600,1650, 550,550, 550,550, 600,550, 550,1650, 550,550, 600,1600, 600,550, 600,500, 600,550, 550,550, 550,1650, 550,1650, 600,550, 600,1600, 600,500, 600,1650, 550,550, 600,550, 600,500, 550,550, 600,550, 550,550, 600,500, 600,550, 550,550, 600,550, 550,550, 600,550, 600,550, 550,1650, 550,1700, 550,550, 600,500, 600,500, 600,550, 550,550, 600,550, 550,1650, 600,1600, 550,1650, 600,550, 550,550, 600,1600, 600,1650, 550};
-unsigned int fan_on_low_oscillate[131] = {9350,4800, 550,550, 600,550, 550,550, 550,1650, 600,550, 550,550, 600,500, 600,1650, 550,550, 550,550, 600,1650, 550,550, 600,500, 600,550, 550,550, 600,500, 600,550, 600,500, 600,1600, 600,1650, 550,550, 550,550, 600,550, 600,1600, 600,500, 600,1650, 550,550, 600,500, 600,550, 600,500, 600,500, 600,550, 600,500, 600,1600, 600,500, 600,1650, 550,550, 600,500, 600,550, 550,550, 600,500, 600,550, 550,550, 600,500, 600,550, 550,550, 600,550, 550,550, 600,550, 550,1650, 600,1650, 600,500, 600,550, 550,550, 600,500, 600,550, 600,500, 550,1650, 600,1600, 600,1650, 600,500, 600,500, 600,550, 600,500, 600};
-unsigned int fan_on_medium_oscillate[131] = {9350,4800, 550,600, 550,550, 600,500, 600,1650, 550,550, 600,550, 550,550, 550,1650, 600,500, 600,550, 550,1650, 600,500, 600,550, 600,500, 600,550, 550,550, 600,500, 600,550, 550,1650, 600,1600, 600,500, 600,550, 550,550, 600,1650, 550,550, 550,1650, 600,550, 550,550, 600,500, 600,500, 600,550, 550,1650, 550,550, 600,1650, 600,500, 550,1650, 600,550, 600,500, 600,550, 550,550, 600,500, 600,550, 550,550, 550,550, 600,550, 550,550, 600,550, 600,500, 600,550, 550,1650, 600,1650, 600,500, 600,550, 550,550, 600,500, 600,550, 600,500, 600,1600, 600,1600, 600,1650, 600,500, 600,550, 550,550, 600,1600, 600};
-unsigned int fan_on_high_oscillate[131] = {9350,4750, 600,550, 600,550, 550,500, 600,1650, 600,500, 600,550, 550,550, 600,1600, 600,550, 550,550, 600,1600, 600,550, 600,500, 600,550, 550,550, 600,550, 550,550, 600,500, 600,1600, 600,1600, 600,500, 600,550, 600,550, 550,1600, 600,550, 600,1600, 600,550, 550,550, 600,550, 550,550, 550,1600, 650,500, 600,550, 550,1600, 650,500, 600,1600, 600,500, 600,550, 600,550, 550,550, 600,550, 550,550, 550,550, 600,550, 550,550, 550,550, 600,550, 550,550, 600,550, 600,1600, 600,1600, 600,550, 600,550, 550,550, 600,500, 600,550, 550,550, 600,1600, 600,1600, 600,1600, 600,550, 600,550, 550,1600, 600,550, 600};
-
-typedef struct {
-  bool on;
-  bool oscillate;
-  int speed;
-  int wind;
-} seville_msg_t;
-
-IRsend irsend(IR_PIN);
-
-DynamicJsonBuffer  jsonBuffer;
-
-seville_msg_t msg;
+IRSevilleFan fan(IR_PIN);
 
 void callback(char* topic, byte* payload, unsigned int length);
 
@@ -67,126 +36,63 @@ void callback(char* topic, byte* payload, unsigned int length) {
   String publishing_topic = "";
   String publishing_payload = "";
 
-  if (String(topic) == String(JSON_SET_TOPIC)) {
-    JsonObject& root = jsonBuffer.parseObject((char*)payload);
+  String str_topic = String(topic);
 
-    if (!root.success()) {
-      Serial.println("parseObject() failed");
-      return;
-    }
-
-    if (root.containsKey("on")) {
-      msg.on = root["on"];
-      publish_to_mqtt(ON_STATE_TOPIC, root["on"]);
-    }
-
-    if (root.containsKey("oscillate")) {
-      msg.oscillate = root["oscillate"];
-      publish_to_mqtt(OSCILLATE_STATE_TOPIC, root["oscillate"]);
-    }
-
-    if (root.containsKey("speed")) {
-      String speed = String(root["speed"].asString());
-      if (speed == "eco") {
-        msg.speed = 3;
-      } else if (speed == "low") {
-        msg.speed = 0;
-      } else if (speed == "medium") {
-        msg.speed = 1;
-      } else if (speed == "high") {
-        msg.speed = 2;
-      }
-      publish_to_mqtt(SPEED_STATE_TOPIC, root["speed"]);
-    }
-
-    if (root.containsKey("wind")) {
-      String wind = String(root["wind"].asString());
-      if (wind == "normal") {
-        msg.wind = 1;
-      } else if (wind == "sleeping") {
-        msg.wind = 2;
-      } else if (wind == "natural") {
-        msg.wind = 3;
-      }
-      publish_to_mqtt(WIND_STATE_TOPIC, root["wind"]);
-    }
-  } else if (String(topic) == String(ON_SET_TOPIC)) {
-    msg.on = (str_payload == "true");
+  if (str_topic.equals(ON_SET_TOPIC)) {
+    bool on = (str_payload == "true");
+    fan.setPower(on);
     publishing_topic = ON_STATE_TOPIC;
-    publishing_payload = (msg.on ? "true" : "false");
-  } else if (String(topic) == String(OSCILLATE_SET_TOPIC)) {
-    msg.oscillate = (str_payload == "true");
+    publishing_payload = (on ? "true" : "false");
+  } else if (str_topic.equals(OSCILLATE_SET_TOPIC)) {
+    bool oscillate = (str_payload == "true");
+    fan.setOscillation(oscillate);
     publishing_topic = OSCILLATE_STATE_TOPIC;
-    publishing_payload = (msg.oscillate ? "true" : "false");
-  } else if (String(topic) == String(SPEED_SET_TOPIC)) {
+    publishing_payload = (oscillate ? "true" : "false");
+  } else if (str_topic.equals(SPEED_SET_TOPIC)) {
     if (str_payload == "eco") {
-      msg.speed = 3;
+      fan.setSpeed(kSevilleSpeedEco);
     } else if (str_payload == "low") {
-      msg.speed = 0;
+      fan.setSpeed(kSevilleSpeedLow);
     } else if (str_payload == "medium") {
-      msg.speed = 1;
+      fan.setSpeed(kSevilleSpeedMedium);
     } else if (str_payload == "high") {
-      msg.speed = 2;
+      fan.setSpeed(kSevilleSpeedHigh);
     }
     publishing_topic = SPEED_STATE_TOPIC;
     publishing_payload = String(str_payload).c_str();
-  } else if (String(topic) == String(WIND_SET_TOPIC)) {
+  } else if (str_topic.equals(WIND_SET_TOPIC)) {
     if (str_payload == "normal") {
-      msg.speed = 1;
+      fan.setWind(kSevilleWindNormal);
     } else if (str_payload == "sleeping") {
-      msg.speed = 2;
+      fan.setWind(kSevilleWindSleeping);
     } else if (str_payload == "natural") {
-      msg.speed = 3;
+      fan.setWind(kSevilleWindNatural);
     }
     publishing_topic = WIND_STATE_TOPIC;
+    publishing_payload = String(str_payload).c_str();
+  } else if (str_topic.equals(TIMER_SET_TOPIC)) {
+    if (str_payload == "normal") {
+      fan.setWind(kSevilleWindNormal);
+    } else if (str_payload == "sleeping") {
+      fan.setWind(kSevilleWindSleeping);
+    } else if (str_payload == "natural") {
+      fan.setWind(kSevilleWindNatural);
+    }
+    publishing_topic = TIMER_STATE_TOPIC;
     publishing_payload = String(str_payload).c_str();
   } else {
     Serial.println("No topic matched!");
   }
 
-  set_fan_state();
+  fan_send();
 
   if (publishing_topic != "" && publishing_payload != "") {
     publish_to_mqtt(publishing_topic.c_str(), publishing_payload.c_str());
   }
-
-  JsonObject& publish_root = jsonBuffer.createObject();
-
-  publish_root["on"] = msg.on;
-  publish_root["oscillate"] = msg.oscillate;
-
-  String human_speed = "";
-
-  if (msg.speed == 3) {
-    human_speed = "eco";
-  } else if (msg.speed == 0) {
-    human_speed = "low";
-  } else if (msg.speed == 1) {
-    human_speed = "medium";
-  } else if (msg.speed == 2) {
-    human_speed = "high";
-  }
-  publish_root["speed"] = human_speed;
-
-  String human_wind = "";
-
-  if (msg.wind == 1) {
-    human_wind = "normal";
-  } else if (msg.wind == 2) {
-    human_wind = "sleeping";
-  } else if (msg.wind == 3) {
-    human_wind = "natural";
-  }
-  publish_root["wind"] = human_wind;
-
-  char buf[256];
-  publish_root.printTo(buf, sizeof(buf));
-
-  publish_to_mqtt(JSON_STATE_TOPIC, buf);
 }
 
 void setup() {
-  irsend.begin();
+  fan.begin();
   Serial.begin(115200);
   Serial.println("Booting");
 
@@ -195,17 +101,12 @@ void setup() {
   pinMode(RED_LED, OUTPUT);
   pinMode(BLUE_LED, OUTPUT);
 
-  send_raw_ir(fan_off_eco);
-
-  msg.on = false;
-  msg.oscillate = false;
-  msg.speed = 3;
-  msg.wind = 3; // 1 = normal, 2 = sleeping, 3 = natural
-
   setup_wifi();
 
   char hostname[20];
   sprintf(hostname, "Seville-MQTT-%06x", ESP.getChipId());
+
+  printState();
 
   ArduinoOTA.setHostname(hostname);
   ArduinoOTA.begin();
@@ -249,10 +150,10 @@ void reconnect() {
       Serial.print("MQTT connection state: ");
       Serial.println(client.state());
       publish_to_mqtt(ALIVE_TOPIC, "alive");
-      client.subscribe(JSON_SET_TOPIC);
       client.subscribe(ON_SET_TOPIC);
       client.subscribe(OSCILLATE_SET_TOPIC);
       client.subscribe(SPEED_SET_TOPIC);
+      client.subscribe(TIMER_SET_TOPIC);
       client.subscribe(WIND_SET_TOPIC);
     } else {
       Serial.print("failed, rc=");
@@ -297,10 +198,11 @@ void loop() {
   client.loop();
 }
 
-void send_raw_ir(unsigned int* raw_data) {
+void fan_send() {
   digitalWrite(BLUE_LED, LOW);
-  irsend.sendRaw(raw_data, 131, 38);
+  fan.send();
   digitalWrite(BLUE_LED, HIGH);
+  printState();
 }
 
 void publish_to_mqtt(const char* topic, const char* payload) {
@@ -309,88 +211,24 @@ void publish_to_mqtt(const char* topic, const char* payload) {
   digitalWrite(RED_LED, HIGH);
 }
 
-void set_fan_state() {
-  unsigned int* ir_code;
-  String ir_code_description = "";
-  if (msg.on) {
-    if (msg.oscillate) {
-      if (msg.speed == 3) {
-        // On, Oscillate, Eco
-        ir_code = fan_on_eco_oscillate;
-        ir_code_description = "On, Oscillate, Eco (fan_on_eco_oscillate)";
-      } else if (msg.speed == 0) {
-        // On, Oscillate, Low
-        ir_code = fan_on_low_oscillate;
-        ir_code_description = "On, Oscillate, Low (fan_on_low_oscillate)";
-      } else if (msg.speed == 1) {
-        // On, Oscillate, Medium
-        ir_code = fan_on_medium_oscillate;
-        ir_code_description = "On, Oscillate, Medium (fan_on_medium_oscillate)";
-      } else if (msg.speed == 2) {
-        // On, Oscillate, High
-        ir_code = fan_on_high_oscillate;
-        ir_code_description = "On, Oscillate, High (fan_on_high_oscillate)";
-      }
-    } else {
-      if (msg.speed == 3) {
-        // On, Eco
-        ir_code = fan_on_eco;
-        ir_code_description = "On, Eco (fan_on_eco)";
-      } else if (msg.speed == 0) {
-        // On, Low
-        ir_code = fan_on_low;
-        ir_code_description = "On, Low (fan_on_low)";
-      } else if (msg.speed == 1) {
-        // On, Medium
-        ir_code = fan_on_medium;
-        ir_code_description = "On, Medium (fan_on_medium)";
-      } else if (msg.speed == 2) {
-        // On, High
-        ir_code = fan_on_high;
-        ir_code_description = "On, High (fan_on_high)";
-      }
-    }
-  } else {
-    // Off
-    if (msg.oscillate) {
-      if (msg.speed == 3) {
-        // Off, Oscillate, Eco
-        ir_code = fan_off_eco_oscillate;
-        ir_code_description = "Off, Oscillate, Eco (fan_off_eco_oscillate)";
-      } else if (msg.speed == 0) {
-        // Off, Oscillate, Low
-        ir_code = fan_off_low_oscillate;
-        ir_code_description = "Off, Oscillate, Low (fan_off_low_oscillate)";
-      } else if (msg.speed == 1) {
-        // Off, Oscillate, Medium
-        ir_code = fan_off_medium_oscillate;
-        ir_code_description = "Off, Oscillate, Medium (fan_off_medium_oscillate)";
-      } else if (msg.speed == 2) {
-        // Off, Oscillate, High
-        ir_code = fan_off_high_oscillate;
-        ir_code_description = "Off, Oscillate, High (fan_off_high_oscillate)";
-      }
-    } else {
-      if (msg.speed == 3) {
-        // Off, Eco
-        ir_code = fan_off_eco;
-        ir_code_description = "Off, Eco (fan_off_eco)";
-      } else if (msg.speed == 0) {
-        // Off, Low
-        ir_code = fan_off_low;
-        ir_code_description = "Off, Low (fan_off_low)";
-      } else if (msg.speed == 1) {
-        // Off, Medium
-        ir_code = fan_off_medium;
-        ir_code_description = "Off, Medium (fan_off_medium)";
-      } else if (msg.speed == 2) {
-        // Off, High
-        ir_code = fan_off_high;
-        ir_code_description = "Off, High (fan_off_high)";
-      }
-    }
-  }
-  Serial.print("Setting fan state to: ");
-  Serial.println(ir_code_description);
-  send_raw_ir(ir_code);
+void printState() {
+  Serial.println("FAN STATE: ");
+  Serial.print("Power: ");
+  Serial.println(fan.getPower());
+  Serial.print("Timer: ");
+  Serial.println(fan.getTimer(), HEX);
+  Serial.print("Oscillation: ");
+  Serial.println(fan.getOscillation());
+  Serial.print("Speed: ");
+  Serial.println(fan.getSpeed(), HEX);
+  Serial.print("Wind: ");
+  Serial.println(fan.getWind(), HEX);
+  uint8_t* ir_code = fan.getRaw();
+  Serial.print("IR Code: 0x");
+  for (uint8_t i = 0; i < kSevilleStateLength; i++)
+    Serial.printf("%02X", ir_code[i]);
+  Serial.println();
+
+  for (uint8_t ii = 0; ii < kSevilleStateLength; ii++)
+    Serial.printf("%02X: %02X\n", ii, ir_code[ii]);
 }
