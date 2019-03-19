@@ -23,6 +23,8 @@ WiFiClient espClient;
 PubSubClient mqttClient(MQTT_SERVER, MQTT_PORT, mqttCallback, espClient);
 
 char hostname[20];
+char chipid[20];
+char localIP[16];
 int startupCompleted = 0;
 
 unsigned long sendTimer;
@@ -157,6 +159,7 @@ void setup() {
   pinMode(RED_LED, OUTPUT);
   pinMode(BLUE_LED, OUTPUT);
 
+  sprintf(chipid, "%08X", ESP.getChipId());
   sprintf(hostname, "Seville-MQTT-%08X", ESP.getChipId());
 
   fan.begin();
@@ -185,9 +188,11 @@ void setupWiFi() {
     Serial.print(".");
   }
 
+  sprintf(localIP, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3] );
+
   Serial.println("");
   Serial.println("WiFi connected");
-  Serial.printf("IP address: %s\n", WiFi.localIP().toString().c_str());
+  Serial.printf("IP address: %s\n", localIP);
 }
 
 void reconnect() {
@@ -302,9 +307,9 @@ void printState() {
 void publishAttributes() {
   StaticJsonDocument<512> root;
   root["BSSID"] = WiFi.BSSIDstr();
-  root["Chip ID"] = String(ESP.getChipId(), HEX);
+  root["Chip ID"] = chipid;
   root["Hostname"] = hostname;
-  root["IP Address"] = WiFi.localIP().toString();
+  root["IP Address"] = localIP;
   root["MAC Address"] = WiFi.macAddress();
   root["MQTT Client ID"] = MQTT_CLIENT_ID;
   root["RSSI"] = WiFi.RSSI();
@@ -334,7 +339,7 @@ void publishDiscovery() {
   root["speed_command_topic"] = SPEED_SET_TOPIC;
   root["speed_state_topic"] = SPEED_STATE_TOPIC;
   root["state_topic"] = ON_STATE_TOPIC;
-  root["unique_id"] = String(ESP.getChipId(), HEX);
+  root["unique_id"] = chipid;
   JsonArray speeds = root.createNestedArray("speeds");
   speeds.add(SPEED_OFF_PAYLOAD);
   speeds.add(SPEED_ECO_PAYLOAD);
