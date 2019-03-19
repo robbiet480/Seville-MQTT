@@ -16,16 +16,16 @@
 #include "IRsend.h"
 
 // Constants
-const uint16_t kSevilleBits = 64;
-const uint16_t kSevilleDefaultRepeat = kNoRepeat;
-const uint16_t kSevilleStateLength = 8;
+const uint16_t kSevilleBits                   = 64;
+const uint16_t kSevilleDefaultRepeat          = kNoRepeat;
+const uint16_t kSevilleStateLength            = 8;
 
-const uint16_t kSevilleHdrMark = 9350;
-const uint16_t kSevilleHdrSpace = 4500;
-const uint16_t kSevilleBitMark = 590;
-const uint16_t kSevilleOneSpace = 1671;
-const uint16_t kSevilleZeroSpace = 546;
-const uint16_t kSevilleMsgSpace = 10000;
+const uint16_t kSevilleHdrMark                = 9350;
+const uint16_t kSevilleHdrSpace               = 4500;
+const uint16_t kSevilleBitMark                = 590;
+const uint16_t kSevilleOneSpace               = 1671;
+const uint16_t kSevilleZeroSpace              = 546;
+const uint16_t kSevilleMsgSpace               = 10000;
 
 // Digit 2, Byte 1 - Power
 const uint8_t kSevillePowerOn                 = 0x11;

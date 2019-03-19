@@ -1,44 +1,82 @@
 // WiFi
-#define WIFI_SSID                           ""
-#define WIFI_PASSWORD                       ""
+#define WIFI_SSID                              ""
+#define WIFI_PASSWORD                          ""
 
 // MQTT. Leave username/password blank if none
-#define MQTT_SERVER                         "192.168.1.2"
-#define MQTT_PORT                           1883
-#define MQTT_USER                           ""
-#define MQTT_PASS                           ""
-#define MQTT_CLIENT_ID                      "ESP8266Client"
+#define MQTT_SERVER                            "192.168.1.2"
+#define MQTT_PORT                              1883
+#define MQTT_USER                              ""
+#define MQTT_PASS                              ""
+#define MQTT_CLIENT_ID                         "ESP8266Client"
+#define MQTT_QOS                               0
 
 // Topics
-#define ALIVE_TOPIC                         "esp8266/fan/status"
+#define ALIVE_TOPIC                            "esp8266/fan/status"
 
-#define ON_STATE_TOPIC                      "esp8266/fan/on/state"
-#define ON_SET_TOPIC                        "esp8266/fan/on/set"
+#define ON_STATE_TOPIC                         "esp8266/fan/on/state"
+#define ON_SET_TOPIC                           "esp8266/fan/on/set"
 
-#define OSCILLATE_STATE_TOPIC               "esp8266/fan/oscillate/state"
-#define OSCILLATE_SET_TOPIC                 "esp8266/fan/oscillate/set"
+#define OSCILLATE_STATE_TOPIC                  "esp8266/fan/oscillate/state"
+#define OSCILLATE_SET_TOPIC                    "esp8266/fan/oscillate/set"
 
-#define SPEED_STATE_TOPIC                   "esp8266/fan/speed/state"
-#define SPEED_SET_TOPIC                     "esp8266/fan/speed/set"
+#define SPEED_STATE_TOPIC                      "esp8266/fan/speed/state"
+#define SPEED_SET_TOPIC                        "esp8266/fan/speed/set"
 
-#define TIMER_STATE_TOPIC                   "esp8266/fan/timer/state"
-#define TIMER_SET_TOPIC                     "esp8266/fan/timer/set"
+#define TIMER_STATE_TOPIC                      "esp8266/fan/timer/state"
+#define TIMER_SET_TOPIC                        "esp8266/fan/timer/set"
 
-#define WIND_STATE_TOPIC                    "esp8266/fan/wind/state"
-#define WIND_SET_TOPIC                      "esp8266/fan/wind/set"
+#define WIND_STATE_TOPIC                       "esp8266/fan/wind/state"
+#define WIND_SET_TOPIC                         "esp8266/fan/wind/set"
 
-#define HOME_ASSISTANT_ATTRIBUTES_TOPIC     "esp8266/fan/attributes"
-#define HOME_ASSISTANT_DISCOVERY_TOPIC      "homeassistant/fan/seville/config"
-#define HOME_ASSISTANT_DISCOVERY_NAME       "Seville Classics UltraSlimline Tower Fan"
+#define HOME_ASSISTANT_ATTRIBUTES_TOPIC        "esp8266/fan/attributes"
+#define HOME_ASSISTANT_MQTT_DISCOVERY_TOPIC    "homeassistant/fan/seville/config"
+#define HOME_ASSISTANT_DISCOVERY_NAME          "Seville Classics UltraSlimline Tower Fan"
+
+// Payloads
+#define ONLINE_PAYLOAD                         "online"
+#define OFFLINE_PAYLOAD                        "offline"
+
+#define POWER_ON_PAYLOAD                       "ON"
+#define POWER_OFF_PAYLOAD                      "OFF"
+
+#define OSCILLATION_ON_PAYLOAD                 "ON"
+#define OSCILLATION_OFF_PAYLOAD                "OFF"
+
+#define SPEED_OFF_PAYLOAD                      "off"
+#define SPEED_ECO_PAYLOAD                      "eco"
+#define SPEED_LOW_PAYLOAD                      "low"
+#define SPEED_MEDIUM_PAYLOAD                   "medium"
+#define SPEED_HIGH_PAYLOAD                     "high"
+
+#define WIND_NORMAL_PAYLOAD                    "normal"
+#define WIND_SLEEPING_PAYLOAD                  "sleeping"
+#define WIND_NATURAL_PAYLOAD                   "natural"
+
+#define TIMER_NONE_PAYLOAD                     "0:00"
+#define TIMER_HALF_HOUR_PAYLOAD                "0:30"
+#define TIMER_HOUR_PAYLOAD                     "1:00"
+#define TIMER_HOUR_AND_A_HALF_HOURS_PAYLOAD    "1:30"
+#define TIMER_TWO_HOURS_PAYLOAD                "2:00"
+#define TIMER_TWO_AND_A_HALF_HOURS_PAYLOAD     "2:30"
+#define TIMER_THREE_HOURS_PAYLOAD              "3:00"
+#define TIMER_THREE_AND_A_HALF_HOURS_PAYLOAD   "3:30"
+#define TIMER_FOUR_HOURS_PAYLOAD               "4:00"
+#define TIMER_FOUR_AND_A_HALF_HOURS_PAYLOAD    "4:30"
+#define TIMER_FIVE_HOURS_PAYLOAD               "5:00"
+#define TIMER_FIVE_AND_A_HALF_HOURS_PAYLOAD    "5:30"
+#define TIMER_SIX_HOURS_PAYLOAD                "6:00"
+#define TIMER_SIX_AND_A_HALF_HOURS_PAYLOAD     "6:30"
+#define TIMER_SEVEN_HOURS_PAYLOAD              "7:00"
+#define TIMER_SEVEN_AND_A_HALF_HOURS_PAYLOAD   "7:30"
 
 // Pin configurations
-#define IR_PIN                              14                    // NodeMCU D5
+#define IR_PIN                                 14                    // NodeMCU D5
 
-#define RED_LED                             16                    // NodeMCU D0
-#define BLUE_LED                            2                     // NodeMCU D4
+#define RED_LED                                16                    // NodeMCU D0
+#define BLUE_LED                               2                     // NodeMCU D4
 
 // RED_LED breathing setting
-#define BRIGHT                              350                   // max led intensity (1-500)
-#define INHALE                              1250                  // Inhalation time in milliseconds.
-#define PULSE                               INHALE*1000/BRIGHT
-#define REST                                1000                  // Rest Between Inhalations.
+#define BRIGHT                                 350                   // max led intensity (1-500)
+#define INHALE                                 1250                  // Inhalation time in milliseconds.
+#define PULSE                                  INHALE*1000/BRIGHT
+#define REST                                   1000                  // Rest Between Inhalations.

@@ -13,18 +13,18 @@
 #include "config.h"
 #include "Seville.h"
 
-#define MQTT_MAX_PACKET_SIZE 512
+#define MQTT_MAX_PACKET_SIZE 768
 
 IRSevilleFan fan(IR_PIN);
 
-void callback(char* topic, byte* payload, unsigned int length);
+void mqttCallback(char* topic, byte* payload, unsigned int length);
 
 WiFiClient espClient;
-PubSubClient client(MQTT_SERVER, MQTT_PORT, callback, espClient);
+PubSubClient mqttClient(MQTT_SERVER, MQTT_PORT, mqttCallback, espClient);
 
 char hostname[20];
 
-void callback(char* topic, byte* payload, unsigned int length) {
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
@@ -36,80 +36,77 @@ void callback(char* topic, byte* payload, unsigned int length) {
   payload[length] = '\0';
   String str_payload = String((char*)payload);
 
-  // Set the publishing_payload before we lowercase incoming payload.
   String publishing_topic = "";
   String publishing_payload = String(str_payload).c_str();
-
-  str_payload.toLowerCase();
 
   String str_topic = String(topic);
 
   if (str_topic.equals(ON_SET_TOPIC)) {
-    bool on = (str_payload == "on");
+    bool on = (str_payload == POWER_ON_PAYLOAD);
     fan.setPower(on);
     publishing_topic = ON_STATE_TOPIC;
     if(!on) {
-      publishToMQTT(SPEED_STATE_TOPIC, "OFF");
+      publishToMQTT(SPEED_STATE_TOPIC, SPEED_OFF_PAYLOAD);
     }
   } else if (str_topic.equals(OSCILLATE_SET_TOPIC)) {
-    bool oscillate = (str_payload == "on");
+    bool oscillate = (str_payload == OSCILLATION_ON_PAYLOAD);
     fan.setOscillation(oscillate);
     publishing_topic = OSCILLATE_STATE_TOPIC;
   } else if (str_topic.equals(SPEED_SET_TOPIC)) {
-    if (str_payload == "off") {
+    if (str_payload == SPEED_OFF_PAYLOAD) {
       fan.setPower(false);
-      publishToMQTT(ON_STATE_TOPIC, "OFF");
-    } else if (str_payload == "eco") {
+      publishToMQTT(ON_STATE_TOPIC, POWER_OFF_PAYLOAD);
+    } else if (str_payload == SPEED_ECO_PAYLOAD) {
       fan.setSpeed(kSevilleSpeedEco);
-    } else if (str_payload == "low") {
+    } else if (str_payload == SPEED_LOW_PAYLOAD) {
       fan.setSpeed(kSevilleSpeedLow);
-    } else if (str_payload == "medium") {
+    } else if (str_payload == SPEED_MEDIUM_PAYLOAD) {
       fan.setSpeed(kSevilleSpeedMedium);
-    } else if (str_payload == "high") {
+    } else if (str_payload == SPEED_HIGH_PAYLOAD) {
       fan.setSpeed(kSevilleSpeedHigh);
     }
     publishing_topic = SPEED_STATE_TOPIC;
   } else if (str_topic.equals(WIND_SET_TOPIC)) {
-    if (str_payload == "normal") {
+    if (str_payload == WIND_NORMAL_PAYLOAD) {
       fan.setWind(kSevilleWindNormal);
-    } else if (str_payload == "sleeping") {
+    } else if (str_payload == WIND_SLEEPING_PAYLOAD) {
       fan.setWind(kSevilleWindSleeping);
-    } else if (str_payload == "natural") {
+    } else if (str_payload == WIND_NATURAL_PAYLOAD) {
       fan.setWind(kSevilleWindNatural);
     }
     publishing_topic = WIND_STATE_TOPIC;
   } else if (str_topic.equals(TIMER_SET_TOPIC)) {
-    if (str_payload == "0:00") {
+    if (str_payload == TIMER_NONE_PAYLOAD) {
       fan.setTimer(kSevilleTimerNone);
-    } else if (str_payload == "0:30") {
+    } else if (str_payload == TIMER_HALF_HOUR_PAYLOAD) {
       fan.setTimer(kSevilleTimerHalfHour);
-    } else if (str_payload == "1:00") {
+    } else if (str_payload == TIMER_HOUR_PAYLOAD) {
       fan.setTimer(kSevilleTimerHour);
-    } else if (str_payload == "1:30") {
+    } else if (str_payload == TIMER_HOUR_AND_A_HALF_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerHourAndAHalfHours);
-    } else if (str_payload == "2:00") {
+    } else if (str_payload == TIMER_TWO_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerTwoHours);
-    } else if (str_payload == "2:30") {
+    } else if (str_payload == TIMER_TWO_AND_A_HALF_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerTwoAndAHalfHours);
-    } else if (str_payload == "3:00") {
+    } else if (str_payload == TIMER_THREE_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerThreeHours);
-    } else if (str_payload == "3:30") {
+    } else if (str_payload == TIMER_THREE_AND_A_HALF_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerThreeAndAHalfHours);
-    } else if (str_payload == "4:00") {
+    } else if (str_payload == TIMER_FOUR_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerFourHours);
-    } else if (str_payload == "4:30") {
+    } else if (str_payload == TIMER_FOUR_AND_A_HALF_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerFourAndAHalfHours);
-    } else if (str_payload == "5:00") {
+    } else if (str_payload == TIMER_FIVE_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerFiveHours);
-    } else if (str_payload == "5:30") {
+    } else if (str_payload == TIMER_FIVE_AND_A_HALF_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerFiveAndAHalfHours);
-    } else if (str_payload == "6:00") {
+    } else if (str_payload == TIMER_SIX_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerSixHours);
-    } else if (str_payload == "6:30") {
+    } else if (str_payload == TIMER_SIX_AND_A_HALF_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerSixAndAHalfHours);
-    } else if (str_payload == "7:00") {
+    } else if (str_payload == TIMER_SEVEN_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerSevenHours);
-    } else if (str_payload == "7:30") {
+    } else if (str_payload == TIMER_SEVEN_AND_A_HALF_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerSevenAndAHalfHours);
     }
     publishing_topic = TIMER_STATE_TOPIC;
@@ -133,13 +130,9 @@ void setup() {
   pinMode(RED_LED, OUTPUT);
   pinMode(BLUE_LED, OUTPUT);
 
-  setupWiFi();
-
   sprintf(hostname, "Seville-MQTT-%08X", ESP.getChipId());
 
-  fan.begin();
-  printState();
-  fanSend();
+  setupWiFi();
 
   ArduinoOTA.setHostname(hostname);
   ArduinoOTA.begin();
@@ -172,29 +165,34 @@ void setupWiFi() {
 
 void reconnect() {
   // Loop until we're reconnected
-  while (!client.connected()) {
+  while (!mqttClient.connected()) {
     Serial.print("Attempting MQTT connection...");
     Serial.print("state=");
-    Serial.println(client.state());
+    Serial.println(mqttClient.state());
 
     // Attempt to connect
-    if (client.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS, ALIVE_TOPIC, 0, 1, "offline")) {
+    if (mqttClient.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS, ALIVE_TOPIC, MQTT_QOS, 1, OFFLINE_PAYLOAD)) {
+      fan.begin();
+      printState();
+      fanSend();
       Serial.print("Connected to MQTT Broker (");
       Serial.print(MQTT_SERVER);
       Serial.println(")");
       Serial.print("MQTT connection state: ");
-      Serial.println(client.state());
-      publishToMQTT(ALIVE_TOPIC, "online");
-      client.subscribe(ON_SET_TOPIC);
-      client.subscribe(OSCILLATE_SET_TOPIC);
-      client.subscribe(SPEED_SET_TOPIC);
-      client.subscribe(TIMER_SET_TOPIC);
-      client.subscribe(WIND_SET_TOPIC);
+      Serial.println(mqttClient.state());
+      publishToMQTT(ALIVE_TOPIC, ONLINE_PAYLOAD);
+
+      // Subscribe to all topics
+      mqttClient.subscribe(ON_SET_TOPIC);
+      mqttClient.subscribe(OSCILLATE_SET_TOPIC);
+      mqttClient.subscribe(SPEED_SET_TOPIC);
+      mqttClient.subscribe(TIMER_SET_TOPIC);
+      mqttClient.subscribe(WIND_SET_TOPIC);
       publishAttributes();
       publishDiscovery();
     } else {
       Serial.print("failed, rc=");
-      Serial.print(client.state());
+      Serial.print(mqttClient.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
@@ -203,7 +201,7 @@ void reconnect() {
 }
 
 void loop() {
-  if (!client.connected()) {
+  if (!mqttClient.connected()) {
     Serial.println("Disconnected from MQTT, starting reconnection!");
     Serial.print("Current WiFi state is: ");
     Serial.println(WiFi.status());
@@ -232,7 +230,7 @@ void loop() {
     reconnect();
   }
   ArduinoOTA.handle();
-  client.loop();
+  mqttClient.loop();
 }
 
 void fanSend() {
@@ -244,7 +242,7 @@ void fanSend() {
 
 void publishToMQTT(const char* topic, const char* payload) {
   digitalWrite(RED_LED, LOW);
-  client.publish(topic, payload, true);
+  mqttClient.publish(topic, payload, true);
   digitalWrite(RED_LED, HIGH);
 }
 
@@ -283,23 +281,33 @@ void publishAttributes(void) {
 }
 
 void publishDiscovery(void) {
-  StaticJsonDocument<512> root;
-  root["name"] = HOME_ASSISTANT_DISCOVERY_NAME;
+  StaticJsonDocument<768> root;
   root["availability_topic"] = ALIVE_TOPIC;
-  root["json_attributes_topic"] = HOME_ASSISTANT_ATTRIBUTES_TOPIC;
-  root["state_topic"] = ON_STATE_TOPIC;
   root["command_topic"] = ON_SET_TOPIC;
-  root["oscillation_state_topic"] = OSCILLATE_STATE_TOPIC;
+  root["json_attributes_topic"] = HOME_ASSISTANT_ATTRIBUTES_TOPIC;
+  root["name"] = HOME_ASSISTANT_DISCOVERY_NAME;
   root["oscillation_command_topic"] = OSCILLATE_SET_TOPIC;
-  root["speed_state_topic"] = SPEED_STATE_TOPIC;
+  root["oscillation_state_topic"] = OSCILLATE_STATE_TOPIC;
+  root["payload_available"] = ONLINE_PAYLOAD;
+  root["payload_high_speed"] = SPEED_HIGH_PAYLOAD;
+  root["payload_low_speed"] = SPEED_LOW_PAYLOAD;
+  root["payload_medium_speed"] = SPEED_MEDIUM_PAYLOAD;
+  root["payload_not_available"] = OFFLINE_PAYLOAD;
+  root["payload_off"] = POWER_OFF_PAYLOAD;
+  root["payload_on"] = POWER_ON_PAYLOAD;
+  root["payload_oscillation_off"] = OSCILLATION_OFF_PAYLOAD;
+  root["payload_oscillation_on"] = OSCILLATION_ON_PAYLOAD;
   root["speed_command_topic"] = SPEED_SET_TOPIC;
+  root["speed_state_topic"] = SPEED_STATE_TOPIC;
+  root["state_topic"] = ON_STATE_TOPIC;
+  root["unique_id"] = String(ESP.getChipId(), HEX);
   JsonArray speeds = root.createNestedArray("speeds");
-  speeds.add("off");
-  speeds.add("eco");
-  speeds.add("low");
-  speeds.add("medium");
-  speeds.add("high");
-  char outgoingJsonBuffer[512];
+  speeds.add(SPEED_OFF_PAYLOAD);
+  speeds.add(SPEED_ECO_PAYLOAD);
+  speeds.add(SPEED_LOW_PAYLOAD);
+  speeds.add(SPEED_MEDIUM_PAYLOAD);
+  speeds.add(SPEED_HIGH_PAYLOAD);
+  char outgoingJsonBuffer[768];
   serializeJson(root, outgoingJsonBuffer);
   publishToMQTT(HOME_ASSISTANT_MQTT_DISCOVERY_TOPIC, outgoingJsonBuffer);
 }
