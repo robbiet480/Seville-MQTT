@@ -23,18 +23,21 @@ WiFiClient espClient;
 PubSubClient mqttClient(MQTT_SERVER, MQTT_PORT, mqttCallback, espClient);
 
 char hostname[20];
+int startupCompleted = 0;
 
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
+  // Since messages are retained, this logic skips the callback
+  // for those until all have been processed.
+  if(startupCompleted < 5) {
+    startupCompleted += 1;
+    Serial.printf("startupCompleted %X\n", startupCompleted);
+    return;
   }
-  Serial.println();
 
   payload[length] = '\0';
   String str_payload = String((char*)payload);
+
+  Serial.printf("Message arrived [%s]: %s\n", topic, str_payload.c_str());
 
   String publishing_topic = "";
   String publishing_payload = String(str_payload).c_str();
@@ -45,9 +48,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     bool on = (str_payload == POWER_ON_PAYLOAD);
     fan.setPower(on);
     publishing_topic = ON_STATE_TOPIC;
-    if(!on) {
-      publishToMQTT(SPEED_STATE_TOPIC, SPEED_OFF_PAYLOAD);
-    }
+    publishToMQTT(SPEED_STATE_TOPIC, mapSpeedVal());
   } else if (str_topic.equals(OSCILLATE_SET_TOPIC)) {
     bool oscillate = (str_payload == OSCILLATION_ON_PAYLOAD);
     fan.setOscillation(oscillate);
@@ -132,6 +133,8 @@ void setup() {
 
   sprintf(hostname, "Seville-MQTT-%08X", ESP.getChipId());
 
+  fan.begin();
+
   setupWiFi();
 
   ArduinoOTA.setHostname(hostname);
@@ -158,29 +161,37 @@ void setupWiFi() {
 
   Serial.println("");
   Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
-
+  Serial.printf("IP address: %s\n", WiFi.localIP().toString().c_str());
 }
 
 void reconnect() {
   // Loop until we're reconnected
   while (!mqttClient.connected()) {
     Serial.print("Attempting MQTT connection...");
-    Serial.print("state=");
-    Serial.println(mqttClient.state());
+    Serial.printf("state=%s\n", mqttClientState());
 
     // Attempt to connect
     if (mqttClient.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS, ALIVE_TOPIC, MQTT_QOS, 1, OFFLINE_PAYLOAD)) {
-      fan.begin();
-      printState();
+      Serial.printf("Connected to MQTT Broker (%s)\n", MQTT_SERVER);
+      Serial.printf("MQTT connection state: %s\n", mqttClientState());
+
+      fan.reset();
       fanSend();
-      Serial.print("Connected to MQTT Broker (");
-      Serial.print(MQTT_SERVER);
-      Serial.println(")");
-      Serial.print("MQTT connection state: ");
-      Serial.println(mqttClient.state());
-      publishToMQTT(ALIVE_TOPIC, ONLINE_PAYLOAD);
+
+      // Set all the default values on the topics
+      mqttClient.publish(ALIVE_TOPIC, ONLINE_PAYLOAD, true);
+
+      mqttClient.publish(ON_SET_TOPIC, POWER_OFF_PAYLOAD, false);
+      mqttClient.publish(OSCILLATE_SET_TOPIC, OSCILLATION_OFF_PAYLOAD, false);
+      mqttClient.publish(SPEED_SET_TOPIC, SPEED_ECO_PAYLOAD, false);
+      mqttClient.publish(TIMER_SET_TOPIC, TIMER_NONE_PAYLOAD, false);
+      mqttClient.publish(WIND_SET_TOPIC, WIND_NORMAL_PAYLOAD, false);
+
+      mqttClient.publish(ON_STATE_TOPIC, POWER_OFF_PAYLOAD, true);
+      mqttClient.publish(OSCILLATE_STATE_TOPIC, OSCILLATION_OFF_PAYLOAD, true);
+      mqttClient.publish(SPEED_STATE_TOPIC, SPEED_ECO_PAYLOAD, true);
+      mqttClient.publish(TIMER_STATE_TOPIC, TIMER_NONE_PAYLOAD, true);
+      mqttClient.publish(WIND_STATE_TOPIC, WIND_NORMAL_PAYLOAD, true);
 
       // Subscribe to all topics
       mqttClient.subscribe(ON_SET_TOPIC);
@@ -188,12 +199,11 @@ void reconnect() {
       mqttClient.subscribe(SPEED_SET_TOPIC);
       mqttClient.subscribe(TIMER_SET_TOPIC);
       mqttClient.subscribe(WIND_SET_TOPIC);
+
       publishAttributes();
       publishDiscovery();
     } else {
-      Serial.print("failed, rc=");
-      Serial.print(mqttClient.state());
-      Serial.println(" try again in 5 seconds");
+      Serial.printf("failed, rc=%s try again in 5 seconds\n", mqttClientState());
       // Wait 5 seconds before retrying
       delay(5000);
     }
@@ -248,16 +258,11 @@ void publishToMQTT(const char* topic, const char* payload) {
 
 void printState() {
   Serial.println("FAN STATE: ");
-  Serial.print("Power: ");
-  Serial.println(fan.getPower());
-  Serial.print("Timer: ");
-  Serial.println(fan.getTimer(), HEX);
-  Serial.print("Oscillation: ");
-  Serial.println(fan.getOscillation());
-  Serial.print("Speed: ");
-  Serial.println(fan.getSpeed(), HEX);
-  Serial.print("Wind: ");
-  Serial.println(fan.getWind(), HEX);
+  Serial.printf("Power: %s\n", fan.getPowerString());
+  Serial.printf("Timer: %s\n", fan.getTimerString());
+  Serial.printf("Oscillation: %s\n", fan.getOscillationString());
+  Serial.printf("Speed: %s\n", fan.getSpeedString());
+  Serial.printf("Wind: %s\n", fan.getWindString());
   uint8_t* ir_code = fan.getRaw();
   Serial.print("IR Code: 0x");
   for (uint8_t i = 0; i < kSevilleStateLength; i++)
@@ -265,7 +270,7 @@ void printState() {
   Serial.println();
 }
 
-void publishAttributes(void) {
+void publishAttributes() {
   StaticJsonDocument<512> root;
   root["BSSID"] = WiFi.BSSIDstr();
   root["Chip ID"] = String(ESP.getChipId(), HEX);
@@ -280,7 +285,7 @@ void publishAttributes(void) {
   publishToMQTT(HOME_ASSISTANT_ATTRIBUTES_TOPIC, outgoingJsonBuffer);
 }
 
-void publishDiscovery(void) {
+void publishDiscovery() {
   StaticJsonDocument<768> root;
   root["availability_topic"] = ALIVE_TOPIC;
   root["command_topic"] = ON_SET_TOPIC;
@@ -310,4 +315,47 @@ void publishDiscovery(void) {
   char outgoingJsonBuffer[768];
   serializeJson(root, outgoingJsonBuffer);
   publishToMQTT(HOME_ASSISTANT_MQTT_DISCOVERY_TOPIC, outgoingJsonBuffer);
+}
+
+char* mqttClientState() {
+  switch(mqttClient.state()) {
+    case MQTT_CONNECTION_TIMEOUT:
+      return "Connection Timeout (code: -4)";
+    case MQTT_CONNECTION_LOST:
+      return "Connection Lost (code: -3)";
+    case MQTT_CONNECT_FAILED:
+      return "Connect Failed (code: -2)";
+    case MQTT_DISCONNECTED:
+      return "Disconnected (code: -1)";
+    case MQTT_CONNECTED:
+      return "Connected (code: 0)";
+    case MQTT_CONNECT_BAD_PROTOCOL:
+      return "Connect Bad Protocol (code: 1)";
+    case MQTT_CONNECT_BAD_CLIENT_ID:
+      return "Connect Bad Client Id (code: 2)";
+    case MQTT_CONNECT_UNAVAILABLE:
+      return "Connect Unavailable (code: 3)";
+    case MQTT_CONNECT_BAD_CREDENTIALS:
+      return "Connect Bad Credentials (code: 4)";
+    case MQTT_CONNECT_UNAUTHORIZED:
+      return "Connect Unauthorized (code: 5)";
+    default:
+      return "Unknown";
+  }
+}
+
+char* mapSpeedVal() {
+  if(!fan.getPower()) {
+    return SPEED_OFF_PAYLOAD;
+  }
+  switch(fan.getSpeed()) {
+    case kSevilleSpeedEco:
+      return SPEED_ECO_PAYLOAD;
+    case kSevilleSpeedLow:
+      return SPEED_LOW_PAYLOAD;
+    case kSevilleSpeedMedium:
+      return SPEED_MEDIUM_PAYLOAD;
+    case kSevilleSpeedHigh:
+      return SPEED_HIGH_PAYLOAD;
+  }
 }

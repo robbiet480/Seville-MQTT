@@ -74,24 +74,30 @@ class IRSevilleFan {
 
   void setPower(bool state);
   bool getPower();
+  char* getPowerString();
 
   void setTimer(uint8_t timer);
   uint8_t getTimer();
+  char* getTimerString();
 
   void setOscillation(bool osc);
   bool getOscillation();
+  char* getOscillationString();
 
   void setSpeed(uint8_t speed);
   uint8_t getSpeed();
+  char* getSpeedString();
 
   void setWind(uint8_t wind);
   uint8_t getWind();
+  char* getWindString();
 
   uint8_t* getRaw();
 
+  void reset();
+
  private:
   uint8_t remote_state[kSevilleStateLength];
-  void stateReset();
   void checksum();
   IRsend _irsend;
   void sendSeville(uint64_t data, uint16_t nbits = kSevilleBits,
