@@ -28,6 +28,14 @@ int startupCompleted = 0;
 unsigned long sendTimer;
 bool waitingToSend = false;
 
+bool are_equal(char* a, char* b) {
+  return strcmp(a, b)==0;
+}
+
+bool are_equal(byte* a, char* b) {
+  return are_equal((char *)a, b);
+}
+
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   // Since messages are retained, this logic skips the callback
   // for those until all have been processed.
@@ -37,87 +45,93 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
 
   payload[length] = '\0';
-  String str_payload = String((char*)payload);
 
-  Serial.printf("Message arrived [%s]: %s\n", topic, str_payload.c_str());
+  // In order to republish this payload, a copy must be made
+  // as the orignal payload buffer will be overwritten whilst
+  // constructing the PUBLISH packet.
 
-  String publishing_topic = "";
+  // Allocate the correct amount of memory for the payload copy
+  byte* copied_payload = (byte*)malloc(length);
+  // Copy the payload to the new buffer
+  memcpy(copied_payload, payload, length);
 
-  String str_topic = String(topic);
+  Serial.printf("Message arrived [%s]: %s\n", topic, payload);
 
-  if (str_topic == ON_SET_TOPIC) {
-    bool on = (str_payload == POWER_ON_PAYLOAD);
+  char publishing_topic[64];
+
+  if (are_equal(topic, ON_SET_TOPIC)) {
+    bool on = are_equal(payload, POWER_ON_PAYLOAD);
     fan.setPower(on);
-    publishing_topic = ON_STATE_TOPIC;
+    strcpy(publishing_topic, ON_STATE_TOPIC);
     mqttClient.publish(SPEED_STATE_TOPIC, mapSpeedVal(), true);
-  } else if (str_topic == OSCILLATE_SET_TOPIC) {
-    bool oscillate = (str_payload == OSCILLATION_ON_PAYLOAD);
+  } else if (are_equal(topic, OSCILLATE_SET_TOPIC)) {
+    bool oscillate = are_equal(payload, OSCILLATION_ON_PAYLOAD);
     fan.setOscillation(oscillate);
-    publishing_topic = OSCILLATE_STATE_TOPIC;
-  } else if (str_topic == SPEED_SET_TOPIC) {
-    if (str_payload == SPEED_OFF_PAYLOAD) {
+    strcpy(publishing_topic, OSCILLATE_STATE_TOPIC);
+  } else if (are_equal(topic, SPEED_SET_TOPIC)) {
+    if (are_equal(payload, SPEED_OFF_PAYLOAD)) {
       fan.setPower(false);
       mqttClient.publish(ON_STATE_TOPIC, POWER_OFF_PAYLOAD, true);
-    } else if (str_payload == SPEED_ECO_PAYLOAD) {
+    } else if (are_equal(payload, SPEED_ECO_PAYLOAD)) {
       fan.setSpeed(kSevilleSpeedEco);
-    } else if (str_payload == SPEED_LOW_PAYLOAD) {
+    } else if (are_equal(payload, SPEED_LOW_PAYLOAD)) {
       fan.setSpeed(kSevilleSpeedLow);
-    } else if (str_payload == SPEED_MEDIUM_PAYLOAD) {
+    } else if (are_equal(payload, SPEED_MEDIUM_PAYLOAD)) {
       fan.setSpeed(kSevilleSpeedMedium);
-    } else if (str_payload == SPEED_HIGH_PAYLOAD) {
+    } else if (are_equal(payload, SPEED_HIGH_PAYLOAD)) {
       fan.setSpeed(kSevilleSpeedHigh);
     } else {
-      Serial.printf("Unknown speed: %s!", str_payload.c_str());
+      Serial.printf("Unknown speed: %s!", payload);
     }
-    publishing_topic = SPEED_STATE_TOPIC;
-  } else if (str_topic == WIND_SET_TOPIC) {
-    if (str_payload == WIND_NORMAL_PAYLOAD) {
+    strcpy(publishing_topic, SPEED_STATE_TOPIC);
+  } else if (are_equal(topic, WIND_SET_TOPIC)) {
+    if (are_equal(payload, WIND_NORMAL_PAYLOAD)) {
       fan.setWind(kSevilleWindNormal);
-    } else if (str_payload == WIND_SLEEPING_PAYLOAD) {
+    } else if (are_equal(payload, WIND_SLEEPING_PAYLOAD)) {
       fan.setWind(kSevilleWindSleeping);
-    } else if (str_payload == WIND_NATURAL_PAYLOAD) {
+    } else if (are_equal(payload, WIND_NATURAL_PAYLOAD)) {
       fan.setWind(kSevilleWindNatural);
     } else {
-      Serial.printf("Unknown wind: %s!", str_payload.c_str());
+      Serial.printf("Unknown wind: %s!", payload);
     }
-    publishing_topic = WIND_STATE_TOPIC;
-  } else if (str_topic == TIMER_SET_TOPIC) {
-    if (str_payload == TIMER_NONE_PAYLOAD) {
+    strcpy(publishing_topic, WIND_STATE_TOPIC);
+  } else if (are_equal(topic, TIMER_SET_TOPIC)) {
+    if (are_equal(payload, TIMER_NONE_PAYLOAD)) {
       fan.setTimer(kSevilleTimerNone);
-    } else if (str_payload == TIMER_HALF_HOUR_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_HALF_HOUR_PAYLOAD)) {
       fan.setTimer(kSevilleTimerHalfHour);
-    } else if (str_payload == TIMER_HOUR_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_HOUR_PAYLOAD)) {
       fan.setTimer(kSevilleTimerHour);
-    } else if (str_payload == TIMER_HOUR_AND_A_HALF_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_HOUR_AND_A_HALF_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerHourAndAHalfHours);
-    } else if (str_payload == TIMER_TWO_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_TWO_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerTwoHours);
-    } else if (str_payload == TIMER_TWO_AND_A_HALF_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_TWO_AND_A_HALF_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerTwoAndAHalfHours);
-    } else if (str_payload == TIMER_THREE_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_THREE_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerThreeHours);
-    } else if (str_payload == TIMER_THREE_AND_A_HALF_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_THREE_AND_A_HALF_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerThreeAndAHalfHours);
-    } else if (str_payload == TIMER_FOUR_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_FOUR_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerFourHours);
-    } else if (str_payload == TIMER_FOUR_AND_A_HALF_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_FOUR_AND_A_HALF_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerFourAndAHalfHours);
-    } else if (str_payload == TIMER_FIVE_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_FIVE_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerFiveHours);
-    } else if (str_payload == TIMER_FIVE_AND_A_HALF_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_FIVE_AND_A_HALF_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerFiveAndAHalfHours);
-    } else if (str_payload == TIMER_SIX_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_SIX_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerSixHours);
-    } else if (str_payload == TIMER_SIX_AND_A_HALF_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_SIX_AND_A_HALF_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerSixAndAHalfHours);
-    } else if (str_payload == TIMER_SEVEN_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_SEVEN_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerSevenHours);
-    } else if (str_payload == TIMER_SEVEN_AND_A_HALF_HOURS_PAYLOAD) {
+    } else if (are_equal(payload, TIMER_SEVEN_AND_A_HALF_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerSevenAndAHalfHours);
     } else {
-      Serial.printf("Unknown timer: %s!", str_payload.c_str());
+      Serial.printf("Unknown timer: %s!", payload);
     }
-    publishing_topic = TIMER_STATE_TOPIC;
+    strcpy(publishing_topic, TIMER_STATE_TOPIC);
   } else {
     Serial.println("No topic matched!");
   }
@@ -125,11 +139,13 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   sendTimer = millis();
   waitingToSend = true;
 
-  if (publishing_topic != "") {
+  if (!are_equal(publishing_topic, "")) {
     digitalWrite(RED_LED, LOW);
-    mqttClient.publish(publishing_topic.c_str(), str_payload.c_str(), true);
+    mqttClient.publish(publishing_topic, copied_payload, true);
     digitalWrite(RED_LED, HIGH);
   }
+
+  free(copied_payload);
 }
 
 void setup() {
