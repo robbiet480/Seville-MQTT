@@ -83,7 +83,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     } else if (are_equal(payload, SPEED_HIGH_PAYLOAD)) {
       fan.setSpeed(kSevilleSpeedHigh);
     } else {
-      Serial.printf("Unknown speed: %s!", payload);
+      Serial.printf("Unknown speed value: %s\n!", payload);
+      return;
     }
     strcpy(publishing_topic, SPEED_STATE_TOPIC);
   } else if (are_equal(topic, WIND_SET_TOPIC)) {
@@ -94,7 +95,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     } else if (are_equal(payload, WIND_NATURAL_PAYLOAD)) {
       fan.setWind(kSevilleWindNatural);
     } else {
-      Serial.printf("Unknown wind: %s!", payload);
+      Serial.printf("Unknown wind value: %s\n!", payload);
+      return;
     }
     strcpy(publishing_topic, WIND_STATE_TOPIC);
   } else if (are_equal(topic, TIMER_SET_TOPIC)) {
@@ -131,7 +133,8 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
     } else if (are_equal(payload, TIMER_SEVEN_AND_A_HALF_HOURS_PAYLOAD)) {
       fan.setTimer(kSevilleTimerSevenAndAHalfHours);
     } else {
-      Serial.printf("Unknown timer: %s!", payload);
+      Serial.printf("Unknown timer value: %s\n!", payload);
+      return;
     }
     strcpy(publishing_topic, TIMER_STATE_TOPIC);
   } else {
