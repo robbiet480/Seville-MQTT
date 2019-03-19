@@ -13,7 +13,7 @@
 #include "config.h"
 #include "Seville.h"
 
-#define MQTT_MAX_PACKET_SIZE 384
+#define MQTT_MAX_PACKET_SIZE 512
 
 IRSevilleFan fan(IR_PIN);
 
@@ -22,7 +22,6 @@ void callback(char* topic, byte* payload, unsigned int length);
 WiFiClient espClient;
 PubSubClient client(MQTT_SERVER, MQTT_PORT, callback, espClient);
 
-char chipid[20];
 char hostname[20];
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -126,8 +125,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 
 void setup() {
-  sprintf(chipid, "%08X", ESP.getChipId());
-  fan.begin();
   Serial.begin(115200);
   Serial.println("Booting");
 
@@ -138,9 +135,11 @@ void setup() {
 
   setupWiFi();
 
-  sprintf(hostname, "Seville-MQTT-%s", chipid);
+  sprintf(hostname, "Seville-MQTT-%08X", ESP.getChipId());
 
+  fan.begin();
   printState();
+  fanSend();
 
   ArduinoOTA.setHostname(hostname);
   ArduinoOTA.begin();
@@ -149,6 +148,8 @@ void setup() {
 void setupWiFi() {
   // Disable built in access point
   WiFi.mode(WIFI_STA);
+
+  WiFi.hostname(hostname);
 
   // We start by connecting to a WiFi network
   Serial.println();
@@ -262,17 +263,14 @@ void printState() {
   uint8_t* ir_code = fan.getRaw();
   Serial.print("IR Code: 0x");
   for (uint8_t i = 0; i < kSevilleStateLength; i++)
-    Serial.printf("%02X", ir_code[i]);
+    Serial.printf(" %02X", ir_code[i]);
   Serial.println();
-
-  for (uint8_t ii = 0; ii < kSevilleStateLength; ii++)
-    Serial.printf("%02X: %02X\n", ii, ir_code[ii]);
 }
 
 void publishAttributes(void) {
-  StaticJsonDocument<1024> root;
+  StaticJsonDocument<512> root;
   root["BSSID"] = WiFi.BSSIDstr();
-  root["Chip ID"] = chipid;
+  root["Chip ID"] = String(ESP.getChipId(), HEX);
   root["Hostname"] = hostname;
   root["IP Address"] = WiFi.localIP().toString();
   root["MAC Address"] = WiFi.macAddress();
@@ -285,7 +283,7 @@ void publishAttributes(void) {
 }
 
 void publishDiscovery(void) {
-  StaticJsonDocument<1024> root;
+  StaticJsonDocument<512> root;
   root["name"] = HOME_ASSISTANT_DISCOVERY_NAME;
   root["availability_topic"] = ALIVE_TOPIC;
   root["json_attributes_topic"] = HOME_ASSISTANT_ATTRIBUTES_TOPIC;
@@ -301,7 +299,7 @@ void publishDiscovery(void) {
   speeds.add("low");
   speeds.add("medium");
   speeds.add("high");
-  char outgoingJsonBuffer[1024];
+  char outgoingJsonBuffer[512];
   serializeJson(root, outgoingJsonBuffer);
   publishToMQTT(HOME_ASSISTANT_MQTT_DISCOVERY_TOPIC, outgoingJsonBuffer);
 }
