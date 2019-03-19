@@ -286,13 +286,6 @@ void loop() {
   mqttClient.loop();
 }
 
-void fanSend() {
-  digitalWrite(BLUE_LED, LOW);
-  fan.send();
-  digitalWrite(BLUE_LED, HIGH);
-  printState();
-}
-
 void printState() {
   uint8_t* ir_code = fan.getRaw();
   char ir_code_str[24];
