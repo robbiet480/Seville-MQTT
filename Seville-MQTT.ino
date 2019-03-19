@@ -25,12 +25,14 @@ PubSubClient mqttClient(MQTT_SERVER, MQTT_PORT, mqttCallback, espClient);
 char hostname[20];
 int startupCompleted = 0;
 
+unsigned long sendTimer;
+bool waitingToSend = false;
+
 void mqttCallback(char* topic, byte* payload, unsigned int length) {
   // Since messages are retained, this logic skips the callback
   // for those until all have been processed.
   if(startupCompleted < 5) {
     startupCompleted += 1;
-    Serial.printf("startupCompleted %X\n", startupCompleted);
     return;
   }
 
@@ -40,23 +42,22 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   Serial.printf("Message arrived [%s]: %s\n", topic, str_payload.c_str());
 
   String publishing_topic = "";
-  String publishing_payload = String(str_payload).c_str();
 
   String str_topic = String(topic);
 
-  if (str_topic.equals(ON_SET_TOPIC)) {
+  if (str_topic == ON_SET_TOPIC) {
     bool on = (str_payload == POWER_ON_PAYLOAD);
     fan.setPower(on);
     publishing_topic = ON_STATE_TOPIC;
-    publishToMQTT(SPEED_STATE_TOPIC, mapSpeedVal());
-  } else if (str_topic.equals(OSCILLATE_SET_TOPIC)) {
+    mqttClient.publish(SPEED_STATE_TOPIC, mapSpeedVal(), true);
+  } else if (str_topic == OSCILLATE_SET_TOPIC) {
     bool oscillate = (str_payload == OSCILLATION_ON_PAYLOAD);
     fan.setOscillation(oscillate);
     publishing_topic = OSCILLATE_STATE_TOPIC;
-  } else if (str_topic.equals(SPEED_SET_TOPIC)) {
+  } else if (str_topic == SPEED_SET_TOPIC) {
     if (str_payload == SPEED_OFF_PAYLOAD) {
       fan.setPower(false);
-      publishToMQTT(ON_STATE_TOPIC, POWER_OFF_PAYLOAD);
+      mqttClient.publish(ON_STATE_TOPIC, POWER_OFF_PAYLOAD, true);
     } else if (str_payload == SPEED_ECO_PAYLOAD) {
       fan.setSpeed(kSevilleSpeedEco);
     } else if (str_payload == SPEED_LOW_PAYLOAD) {
@@ -65,18 +66,22 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       fan.setSpeed(kSevilleSpeedMedium);
     } else if (str_payload == SPEED_HIGH_PAYLOAD) {
       fan.setSpeed(kSevilleSpeedHigh);
+    } else {
+      Serial.printf("Unknown speed: %s!", str_payload.c_str());
     }
     publishing_topic = SPEED_STATE_TOPIC;
-  } else if (str_topic.equals(WIND_SET_TOPIC)) {
+  } else if (str_topic == WIND_SET_TOPIC) {
     if (str_payload == WIND_NORMAL_PAYLOAD) {
       fan.setWind(kSevilleWindNormal);
     } else if (str_payload == WIND_SLEEPING_PAYLOAD) {
       fan.setWind(kSevilleWindSleeping);
     } else if (str_payload == WIND_NATURAL_PAYLOAD) {
       fan.setWind(kSevilleWindNatural);
+    } else {
+      Serial.printf("Unknown wind: %s!", str_payload.c_str());
     }
     publishing_topic = WIND_STATE_TOPIC;
-  } else if (str_topic.equals(TIMER_SET_TOPIC)) {
+  } else if (str_topic == TIMER_SET_TOPIC) {
     if (str_payload == TIMER_NONE_PAYLOAD) {
       fan.setTimer(kSevilleTimerNone);
     } else if (str_payload == TIMER_HALF_HOUR_PAYLOAD) {
@@ -109,16 +114,21 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
       fan.setTimer(kSevilleTimerSevenHours);
     } else if (str_payload == TIMER_SEVEN_AND_A_HALF_HOURS_PAYLOAD) {
       fan.setTimer(kSevilleTimerSevenAndAHalfHours);
+    } else {
+      Serial.printf("Unknown timer: %s!", str_payload.c_str());
     }
     publishing_topic = TIMER_STATE_TOPIC;
   } else {
     Serial.println("No topic matched!");
   }
 
-  fanSend();
+  sendTimer = millis();
+  waitingToSend = true;
 
-  if (publishing_topic != "" && publishing_payload != "") {
-    publishToMQTT(publishing_topic.c_str(), publishing_payload.c_str());
+  if (publishing_topic != "") {
+    digitalWrite(RED_LED, LOW);
+    mqttClient.publish(publishing_topic.c_str(), str_payload.c_str(), true);
+    digitalWrite(RED_LED, HIGH);
   }
 }
 
@@ -176,7 +186,10 @@ void reconnect() {
       Serial.printf("MQTT connection state: %s\n", mqttClientState());
 
       fan.reset();
-      fanSend();
+      fan.send();
+
+      waitingToSend = false;
+      sendTimer = 0;
 
       // Set all the default values on the topics
       mqttClient.publish(ALIVE_TOPIC, ONLINE_PAYLOAD, true);
@@ -239,6 +252,15 @@ void loop() {
     delay(REST);                           // take a rest...
     reconnect();
   }
+  if(waitingToSend && (millis()-sendTimer >= 250UL)) {
+    waitingToSend = false;
+    sendTimer = 0;
+    Serial.println("Flushing pending commands to IR!");
+    digitalWrite(BLUE_LED, LOW);
+    fan.send();
+    digitalWrite(BLUE_LED, HIGH);
+    printState();
+  }
   ArduinoOTA.handle();
   mqttClient.loop();
 }
@@ -250,24 +272,15 @@ void fanSend() {
   printState();
 }
 
-void publishToMQTT(const char* topic, const char* payload) {
-  digitalWrite(RED_LED, LOW);
-  mqttClient.publish(topic, payload, true);
-  digitalWrite(RED_LED, HIGH);
-}
-
 void printState() {
-  Serial.println("FAN STATE: ");
-  Serial.printf("Power: %s\n", fan.getPowerString());
-  Serial.printf("Timer: %s\n", fan.getTimerString());
-  Serial.printf("Oscillation: %s\n", fan.getOscillationString());
-  Serial.printf("Speed: %s\n", fan.getSpeedString());
-  Serial.printf("Wind: %s\n", fan.getWindString());
   uint8_t* ir_code = fan.getRaw();
-  Serial.print("IR Code: 0x");
-  for (uint8_t i = 0; i < kSevilleStateLength; i++)
-    Serial.printf(" %02X", ir_code[i]);
-  Serial.println();
+  char ir_code_str[24];
+  sprintf(ir_code_str, "%02X %02X %02X %02X %02X %02X %02X %02X",
+          ir_code[0], ir_code[1], ir_code[2], ir_code[3], ir_code[4], ir_code[5], ir_code[6], ir_code[7]);
+
+  Serial.printf("New Fan State: Power: %s, Timer: %s, Oscillation: %s, Speed: %s, Wind: %s, IR Code: 0x %s\n",
+                 fan.getPowerString(), fan.getTimerString(), fan.getOscillationString(),
+                 fan.getSpeedString(), fan.getWindString(), ir_code_str);
 }
 
 void publishAttributes() {
@@ -282,7 +295,7 @@ void publishAttributes() {
   root["SSID"] = WiFi.SSID();
   char outgoingJsonBuffer[512];
   serializeJson(root, outgoingJsonBuffer);
-  publishToMQTT(HOME_ASSISTANT_ATTRIBUTES_TOPIC, outgoingJsonBuffer);
+  mqttClient.publish(HOME_ASSISTANT_ATTRIBUTES_TOPIC, outgoingJsonBuffer, true);
 }
 
 void publishDiscovery() {
@@ -314,7 +327,7 @@ void publishDiscovery() {
   speeds.add(SPEED_HIGH_PAYLOAD);
   char outgoingJsonBuffer[768];
   serializeJson(root, outgoingJsonBuffer);
-  publishToMQTT(HOME_ASSISTANT_MQTT_DISCOVERY_TOPIC, outgoingJsonBuffer);
+  mqttClient.publish(HOME_ASSISTANT_MQTT_DISCOVERY_TOPIC, outgoingJsonBuffer, true);
 }
 
 char* mqttClientState() {
