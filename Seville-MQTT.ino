@@ -202,7 +202,7 @@ void reconnect() {
     Serial.printf("state=%s\n", mqttClientState());
 
     // Attempt to connect
-    if (mqttClient.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASS, ALIVE_TOPIC, MQTT_QOS, 1, OFFLINE_PAYLOAD)) {
+    if (mqttClient.connect(hostname, MQTT_USER, MQTT_PASS, ALIVE_TOPIC, MQTT_QOS, 1, OFFLINE_PAYLOAD)) {
       Serial.printf("Connected to MQTT Broker (%s)\n", MQTT_SERVER);
       Serial.printf("MQTT connection state: %s\n", mqttClientState());
 
@@ -311,7 +311,6 @@ void publishAttributes() {
   root["Hostname"] = hostname;
   root["IP Address"] = localIP;
   root["MAC Address"] = WiFi.macAddress();
-  root["MQTT Client ID"] = MQTT_CLIENT_ID;
   root["RSSI"] = WiFi.RSSI();
   root["SSID"] = WiFi.SSID();
   char outgoingJsonBuffer[512];
